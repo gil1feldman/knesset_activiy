@@ -83,40 +83,52 @@
     const tableBody = document.querySelector("#schedule-table tbody");
     const searchInput = document.getElementById("search");
 
-    const today = new Date();
-    const nextWeek = new Date();
-    nextWeek.setDate(today.getDate() + 7);
-    const formatDate = (d) => d.toISOString().split("T")[0];
+    function formatDateTime(dateStr) {
+      const d = new Date(dateStr);
+      const date = d.toLocaleDateString("he-IL");
+      const time = d.toLocaleTimeString("he-IL", { hour: '2-digit', minute: '2-digit' });
+      return { date, time };
+    }
 
-    const url = `https://knesset.gov.il/Odata/ParliamentInfo.svc/KNS_CommitteeSession?$filter=SessionDate ge datetime'${formatDate(today)}T00:00:00' and SessionDate le datetime'${formatDate(nextWeek)}T23:59:59'&$expand=KNS_Committee&$orderby=SessionDate`;
+    function loadMeetings() {
+      fetch("https://oknesset.org/api/committees/kns_committeesession/?ordering=session_date&limit=100")
+        .then(res => res.json())
+        .then(data => {
+          const today = new Date();
+          const weekFromNow = new Date();
+          weekFromNow.setDate(today.getDate() + 7);
 
-    fetch(url)
-      .then(res => res.json())
-      .then(data => {
-        const results = data.d.results;
-        tableBody.innerHTML = "";
-        if (results.length === 0) {
-          tableBody.innerHTML = "<tr class='no-results'><td colspan='5'>אין ישיבות מתוכננות לשבוע הקרוב.</td></tr>";
-        } else {
-          results.forEach(session => {
-            const date = new Date(session.SessionDate);
-            const row = document.createElement("tr");
-            row.innerHTML = `
-              <td>${date.toLocaleDateString("he-IL")}</td>
-              <td>${date.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}</td>
-              <td>${session.KNS_Committee?.Name || ""}</td>
-              <td>${session.Topic || ""}</td>
-              <td>${session.MeetingPlace || ""}</td>
-            `;
-            tableBody.appendChild(row);
+          const filtered = data.results.filter(item => {
+            const date = new Date(item.session_date);
+            return date >= today && date <= weekFromNow;
           });
-        }
-      })
-      .catch(err => {
-        console.error("שגיאה בטעינת הנתונים:", err);
-        tableBody.innerHTML = "<tr class='no-results'><td colspan='5'>שגיאה בטעינת הנתונים.</td></tr>";
-      });
 
+          tableBody.innerHTML = "";
+
+          if (filtered.length === 0) {
+            tableBody.innerHTML = "<tr class='no-results'><td colspan='5'>אין ישיבות מתוכננות לשבוע הקרוב.</td></tr>";
+          } else {
+            filtered.forEach(session => {
+              const { date, time } = formatDateTime(session.session_date);
+              const row = document.createElement("tr");
+              row.innerHTML = `
+                <td>${date}</td>
+                <td>${time}</td>
+                <td>${session.committee.name || ""}</td>
+                <td>${session.topic || ""}</td>
+                <td>${session.meeting_place || ""}</td>
+              `;
+              tableBody.appendChild(row);
+            });
+          }
+        })
+        .catch(err => {
+          console.error("שגיאה בטעינת הנתונים:", err);
+          tableBody.innerHTML = "<tr class='no-results'><td colspan='5'>שגיאה בטעינת הנתונים.</td></tr>";
+        });
+    }
+
+    // סינון תוצאות לפי חיפוש
     searchInput.addEventListener("input", () => {
       const filter = searchInput.value.toLowerCase();
       const rows = tableBody.querySelectorAll("tr");
@@ -136,6 +148,8 @@
         tableBody.innerHTML = "<tr class='no-results'><td colspan='5'>לא נמצאו תוצאות תואמות.</td></tr>";
       }
     });
+
+    loadMeetings();
   </script>
 
 </body>
