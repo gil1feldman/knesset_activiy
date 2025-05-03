@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+  <meta charset="UTF-8">
+  <title>לוח ישיבות הכנסת – השבוע הקרוב</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      direction: rtl;
+      background-color: #f9f9f9;
+      margin: 0;
+      padding: 30px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    #search {
+      display: block;
+      margin: 0 auto 20px auto;
+      padding: 10px;
+      width: 60%;
+      max-width: 500px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: #fff;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+
+    th, td {
+      padding: 12px;
+      border: 1px solid #ddd;
+      text-align: right;
+    }
+
+    th {
+      background-color: #4CAF50;
+      color: white;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+
+    tr.no-results td {
+      text-align: center;
+      color: #888;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>לוח ישיבות הכנסת – השבוע הקרוב</h1>
+
+  <input type="text" id="search" placeholder="חפש לפי נושא, ועדה או מיקום...">
+
+  <table id="schedule-table">
+    <thead>
+      <tr>
+        <th>תאריך</th>
+        <th>שעה</th>
+        <th>ועדה</th>
+        <th>נושא</th>
+        <th>מיקום</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td colspan="5">טוען נתונים...</td></tr>
+    </tbody>
+  </table>
+
+  <script>
+    const tableBody = document.querySelector("#schedule-table tbody");
+    const searchInput = document.getElementById("search");
+
+    const today = new Date();
+    const nextWeek = new Date();
+    nextWeek.setDate(today.getDate() + 7);
+    const formatDate = (d) => d.toISOString().split("T")[0];
+
+    const url = `https://knesset.gov.il/Odata/ParliamentInfo.svc/KNS_CommitteeSession?$filter=SessionDate ge datetime'${formatDate(today)}T00:00:00' and SessionDate le datetime'${formatDate(nextWeek)}T23:59:59'&$expand=KNS_Committee&$orderby=SessionDate`;
+
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        const results = data.d.results;
+        tableBody.innerHTML = "";
+        if (results.length === 0) {
+          tableBody.innerHTML = "<tr class='no-results'><td colspan='5'>אין ישיבות מתוכננות לשבוע הקרוב.</td></tr>";
+        } else {
+          results.forEach(session => {
+            const date = new Date(session.SessionDate);
+            const row = document.createElement("tr");
+            row.innerHTML = `
+              <td>${date.toLocaleDateString("he-IL")}</td>
+              <td>${date.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}</td>
+              <td>${session.KNS_Committee?.Name || ""}</td>
+              <td>${session.Topic || ""}</td>
+              <td>${session.MeetingPlace || ""}</td>
+            `;
+            tableBody.appendChild(row);
+          });
+        }
+      })
+      .catch(err => {
+        console.error("שגיאה בטעינת הנתונים:", err);
+        tableBody.innerHTML = "<tr class='no-results'><td colspan='5'>שגיאה בטעינת הנתונים.</td></tr>";
+      });
+
+    searchInput.addEventListener("input", () => {
+      const filter = searchInput.value.toLowerCase();
+      const rows = tableBody.querySelectorAll("tr");
+      let visibleRows = 0;
+
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        if (text.includes(filter)) {
+          row.style.display = "";
+          visibleRows++;
+        } else {
+          row.style.display = "none";
+        }
+      });
+
+      if (visibleRows === 0) {
+        tableBody.innerHTML = "<tr class='no-results'><td colspan='5'>לא נמצאו תוצאות תואמות.</td></tr>";
+      }
+    });
+  </script>
+
+</body>
+</html>
