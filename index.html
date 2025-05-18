@@ -2,12 +2,13 @@
 <html lang="he">
 <head>
   <meta charset="UTF-8">
-  <title>כל הצעות החוק - עם שלב ותאריך עדכון</title>
+  <title>רשימת הצעות חוק מהכנסת</title>
   <style>
     table {
       width: 100%;
       border-collapse: collapse;
       direction: rtl;
+      font-family: sans-serif;
     }
     th, td {
       border: 1px solid #aaa;
@@ -21,26 +22,24 @@
 </head>
 <body>
 
-<h2>כל הצעות החוק - כולל סוג, שלב ותאריך עדכון</h2>
+<h2>רשימת הצעות חוק</h2>
 <table id="bills-table">
   <thead>
     <tr>
       <th>מספר</th>
       <th>שם</th>
-      <th>SubTypeID</th>
-      <th>שלב</th>
+      <th>סוג</th>
       <th>תאריך עדכון</th>
-      <th>יוזמים</th>
     </tr>
   </thead>
   <tbody>
-    <!-- תוכן נטען דינמית -->
+    <!-- יוזן דינמית -->
   </tbody>
 </table>
 
 <script>
-async function fetchAllBills(limit = 200) {
-  const url = `https://knesset.gov.il/Odata/ParliamentInfo.svc/KNS_Bill()?$top=${limit}&$expand=KNS_BillInitiators`;
+async function fetchBills(limit = 50) {
+  const url = `https://knesset.gov.il/Odata/ParliamentInfo.svc/KNS_Bill()?$top=${limit}&$format=json`;
 
   try {
     const response = await fetch(url, {
@@ -48,6 +47,7 @@ async function fetchAllBills(limit = 200) {
         "Accept": "application/json"
       }
     });
+
     const data = await response.json();
     const bills = data.value;
 
@@ -57,42 +57,22 @@ async function fetchAllBills(limit = 200) {
     bills.forEach(bill => {
       const tr = document.createElement("tr");
 
-      const tdId = document.createElement("td");
-      tdId.textContent = bill.BillID;
+      tr.innerHTML = `
+        <td>${bill.BillID}</td>
+        <td>${bill.Name}</td>
+        <td>${bill.SubTypeDesc || bill.SubTypeID}</td>
+        <td>${bill.LastUpdatedDate ? new Date(bill.LastUpdatedDate).toLocaleDateString('he-IL') : "—"}</td>
+      `;
 
-      const tdName = document.createElement("td");
-      tdName.textContent = bill.Name;
-
-      const tdSubType = document.createElement("td");
-      tdSubType.textContent = bill.SubTypeID;
-
-      const tdStage = document.createElement("td");
-      tdStage.textContent = bill.StageDesc || "—";
-
-      const tdDate = document.createElement("td");
-      tdDate.textContent = bill.LastUpdatedDate
-        ? new Date(bill.LastUpdatedDate).toLocaleDateString('he-IL')
-        : "—";
-
-      const tdInitiators = document.createElement("td");
-      tdInitiators.textContent = (bill.KNS_BillInitiators || [])
-        .map(p => p.Name)
-        .join(", ") || "—";
-
-      tr.appendChild(tdId);
-      tr.appendChild(tdName);
-      tr.appendChild(tdSubType);
-      tr.appendChild(tdStage);
-      tr.appendChild(tdDate);
-      tr.appendChild(tdInitiators);
       tableBody.appendChild(tr);
     });
+
   } catch (err) {
-    console.error("שגיאה בטעינה:", err);
+    console.error("שגיאה בטעינת נתונים:", err);
   }
 }
 
-fetchAllBills();
+fetchBills();
 </script>
 
 </body>
