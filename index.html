@@ -2,21 +2,20 @@
 <html lang="he">
 <head>
   <meta charset="UTF-8">
-  <title>רשימת הצעות חוק מהכנסת</title>
+  <title>הצעות חוק מהכנסת</title>
   <style>
     table {
       width: 100%;
       border-collapse: collapse;
       direction: rtl;
-      font-family: sans-serif;
+      font-family: Arial, sans-serif;
     }
     th, td {
-      border: 1px solid #aaa;
+      border: 1px solid #999;
       padding: 8px;
-      text-align: right;
     }
     th {
-      background-color: #f0f0f0;
+      background-color: #f2f2f2;
     }
   </style>
 </head>
@@ -33,42 +32,39 @@
     </tr>
   </thead>
   <tbody>
-    <!-- יוזן דינמית -->
+    <!-- שורות יוזנו כאן -->
   </tbody>
 </table>
 
 <script>
-async function fetchBills(limit = 50) {
-  const url = `https://knesset.gov.il/Odata/ParliamentInfo.svc/KNS_Bill()?$top=${limit}&$format=json`;
+async function fetchBills() {
+  const url = "https://knesset.gov.il/Odata/ParliamentInfo.svc/KNS_Bill()?$top=20&$format=json";
 
   try {
-    const response = await fetch(url, {
-      headers: {
-        "Accept": "application/json"
-      }
-    });
-
+    const response = await fetch(url);
     const data = await response.json();
     const bills = data.value;
 
-    const tableBody = document.querySelector("#bills-table tbody");
-    tableBody.innerHTML = "";
+    const tbody = document.querySelector("#bills-table tbody");
+    tbody.innerHTML = ""; // ניקוי קודם
 
     bills.forEach(bill => {
-      const tr = document.createElement("tr");
+      const row = document.createElement("tr");
 
-      tr.innerHTML = `
+      row.innerHTML = `
         <td>${bill.BillID}</td>
         <td>${bill.Name}</td>
         <td>${bill.SubTypeDesc || bill.SubTypeID}</td>
         <td>${bill.LastUpdatedDate ? new Date(bill.LastUpdatedDate).toLocaleDateString('he-IL') : "—"}</td>
       `;
 
-      tableBody.appendChild(tr);
+      tbody.appendChild(row);
     });
 
-  } catch (err) {
-    console.error("שגיאה בטעינת נתונים:", err);
+  } catch (error) {
+    console.error("שגיאה:", error);
+    const tbody = document.querySelector("#bills-table tbody");
+    tbody.innerHTML = "<tr><td colspan='4'>שגיאה בטעינת הנתונים</td></tr>";
   }
 }
 
