@@ -2,155 +2,98 @@
 <html lang="he">
 <head>
   <meta charset="UTF-8">
-  <title>לוח ישיבות הכנסת – השבוע הקרוב</title>
+  <title>כל הצעות החוק - עם שלב ותאריך עדכון</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      direction: rtl;
-      background-color: #f9f9f9;
-      margin: 0;
-      padding: 30px;
-    }
-
-    h1 {
-      text-align: center;
-      margin-bottom: 20px;
-      color: #333;
-    }
-
-    #search {
-      display: block;
-      margin: 0 auto 20px auto;
-      padding: 10px;
-      width: 60%;
-      max-width: 500px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      font-size: 16px;
-    }
-
     table {
       width: 100%;
       border-collapse: collapse;
-      background-color: #fff;
-      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+      direction: rtl;
     }
-
     th, td {
-      padding: 12px;
-      border: 1px solid #ddd;
+      border: 1px solid #aaa;
+      padding: 8px;
       text-align: right;
     }
-
     th {
-      background-color: #4CAF50;
-      color: white;
-    }
-
-    tr:nth-child(even) {
-      background-color: #f2f2f2;
-    }
-
-    tr.no-results td {
-      text-align: center;
-      color: #888;
-      font-style: italic;
+      background-color: #f0f0f0;
     }
   </style>
 </head>
 <body>
 
-  <h1>לוח ישיבות הכנסת – השבוע הקרוב</h1>
+<h2>כל הצעות החוק - כולל סוג, שלב ותאריך עדכון</h2>
+<table id="bills-table">
+  <thead>
+    <tr>
+      <th>מספר</th>
+      <th>שם</th>
+      <th>SubTypeID</th>
+      <th>שלב</th>
+      <th>תאריך עדכון</th>
+      <th>יוזמים</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- תוכן נטען דינמית -->
+  </tbody>
+</table>
 
-  <input type="text" id="search" placeholder="חפש לפי נושא, ועדה או מיקום...">
+<script>
+async function fetchAllBills(limit = 200) {
+  const url = `https://knesset.gov.il/Odata/ParliamentInfo.svc/KNS_Bill()?$top=${limit}&$expand=KNS_BillInitiators`;
 
-  <table id="schedule-table">
-    <thead>
-      <tr>
-        <th>תאריך</th>
-        <th>שעה</th>
-        <th>ועדה</th>
-        <th>נושא</th>
-        <th>מיקום</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr><td colspan="5">טוען נתונים...</td></tr>
-    </tbody>
-  </table>
-
-  <script>
-    const tableBody = document.querySelector("#schedule-table tbody");
-    const searchInput = document.getElementById("search");
-
-    function formatDateTime(dateStr) {
-      const d = new Date(dateStr);
-      const date = d.toLocaleDateString("he-IL");
-      const time = d.toLocaleTimeString("he-IL", { hour: '2-digit', minute: '2-digit' });
-      return { date, time };
-    }
-
-    function loadMeetings() {
-      fetch("https://oknesset.org/api/committees/kns_committeesession/?ordering=session_date&limit=100")
-        .then(res => res.json())
-        .then(data => {
-          const today = new Date();
-          const weekFromNow = new Date();
-          weekFromNow.setDate(today.getDate() + 7);
-
-          const filtered = data.results.filter(item => {
-            const date = new Date(item.session_date);
-            return date >= today && date <= weekFromNow;
-          });
-
-          tableBody.innerHTML = "";
-
-          if (filtered.length === 0) {
-            tableBody.innerHTML = "<tr class='no-results'><td colspan='5'>אין ישיבות מתוכננות לשבוע הקרוב.</td></tr>";
-          } else {
-            filtered.forEach(session => {
-              const { date, time } = formatDateTime(session.session_date);
-              const row = document.createElement("tr");
-              row.innerHTML = `
-                <td>${date}</td>
-                <td>${time}</td>
-                <td>${session.committee.name || ""}</td>
-                <td>${session.topic || ""}</td>
-                <td>${session.meeting_place || ""}</td>
-              `;
-              tableBody.appendChild(row);
-            });
-          }
-        })
-        .catch(err => {
-          console.error("שגיאה בטעינת הנתונים:", err);
-          tableBody.innerHTML = "<tr class='no-results'><td colspan='5'>שגיאה בטעינת הנתונים.</td></tr>";
-        });
-    }
-
-    // סינון תוצאות לפי חיפוש
-    searchInput.addEventListener("input", () => {
-      const filter = searchInput.value.toLowerCase();
-      const rows = tableBody.querySelectorAll("tr");
-      let visibleRows = 0;
-
-      rows.forEach(row => {
-        const text = row.textContent.toLowerCase();
-        if (text.includes(filter)) {
-          row.style.display = "";
-          visibleRows++;
-        } else {
-          row.style.display = "none";
-        }
-      });
-
-      if (visibleRows === 0) {
-        tableBody.innerHTML = "<tr class='no-results'><td colspan='5'>לא נמצאו תוצאות תואמות.</td></tr>";
+  try {
+    const response = await fetch(url, {
+      headers: {
+        "Accept": "application/json"
       }
     });
+    const data = await response.json();
+    const bills = data.value;
 
-    loadMeetings();
-  </script>
+    const tableBody = document.querySelector("#bills-table tbody");
+    tableBody.innerHTML = "";
+
+    bills.forEach(bill => {
+      const tr = document.createElement("tr");
+
+      const tdId = document.createElement("td");
+      tdId.textContent = bill.BillID;
+
+      const tdName = document.createElement("td");
+      tdName.textContent = bill.Name;
+
+      const tdSubType = document.createElement("td");
+      tdSubType.textContent = bill.SubTypeID;
+
+      const tdStage = document.createElement("td");
+      tdStage.textContent = bill.StageDesc || "—";
+
+      const tdDate = document.createElement("td");
+      tdDate.textContent = bill.LastUpdatedDate
+        ? new Date(bill.LastUpdatedDate).toLocaleDateString('he-IL')
+        : "—";
+
+      const tdInitiators = document.createElement("td");
+      tdInitiators.textContent = (bill.KNS_BillInitiators || [])
+        .map(p => p.Name)
+        .join(", ") || "—";
+
+      tr.appendChild(tdId);
+      tr.appendChild(tdName);
+      tr.appendChild(tdSubType);
+      tr.appendChild(tdStage);
+      tr.appendChild(tdDate);
+      tr.appendChild(tdInitiators);
+      tableBody.appendChild(tr);
+    });
+  } catch (err) {
+    console.error("שגיאה בטעינה:", err);
+  }
+}
+
+fetchAllBills();
+</script>
 
 </body>
 </html>
