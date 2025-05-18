@@ -32,39 +32,32 @@
     </tr>
   </thead>
   <tbody>
-    <!-- שורות יוזנו כאן -->
+    <!-- נתונים יוזנו כאן -->
   </tbody>
 </table>
 
 <script>
 async function fetchBills() {
-  const url = "https://knesset.gov.il/Odata/ParliamentInfo.svc/KNS_Bill()?$top=20&$format=json";
-
   try {
-    const response = await fetch(url);
-    const data = await response.json();
-    const bills = data.value;
+    const response = await fetch("knesset_bills.json");  // אם הקובץ בתיקייה אחרת, שים את הנתיב למשל: data/knesset_bills.json
+    const bills = await response.json();
 
     const tbody = document.querySelector("#bills-table tbody");
-    tbody.innerHTML = ""; // ניקוי קודם
+    tbody.innerHTML = "";
 
     bills.forEach(bill => {
-      const row = document.createElement("tr");
-
-      row.innerHTML = `
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
         <td>${bill.BillID}</td>
         <td>${bill.Name}</td>
         <td>${bill.SubTypeDesc || bill.SubTypeID}</td>
         <td>${bill.LastUpdatedDate ? new Date(bill.LastUpdatedDate).toLocaleDateString('he-IL') : "—"}</td>
       `;
-
-      tbody.appendChild(row);
+      tbody.appendChild(tr);
     });
 
   } catch (error) {
-    console.error("שגיאה:", error);
-    const tbody = document.querySelector("#bills-table tbody");
-    tbody.innerHTML = "<tr><td colspan='4'>שגיאה בטעינת הנתונים</td></tr>";
+    console.error("שגיאה בטעינה:", error);
   }
 }
 
